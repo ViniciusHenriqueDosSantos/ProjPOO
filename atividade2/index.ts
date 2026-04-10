@@ -1,15 +1,18 @@
-import {INotificator,NotificationFactory,Notificators,Email, Push, SMS} from './notifications'
+import {INotificator,NotificationFactory,Notificators,Email, Push, SMS, TelegraphAdaptor, NotificationSenderProxy} from './notifications'
 class SystemManager {
     private static instance: SystemManager | null = null
 
     public name: string
     private maxRetry: number
-    private notificator: INotificator | null = null
+    private notificator: INotificator
+    private notificatorProxy: NotificationSenderProxy
     private notificatorFactory: NotificationFactory = new NotificationFactory()
 
      constructor(name: string, maxRetry: number) {
         this.name = name
         this.maxRetry = maxRetry
+        this.notificator= new Email()
+        this.notificatorProxy=new NotificationSenderProxy(this.notificator)
     }
 
     public static getInstance(name: string, maxRetry: number): SystemManager {
@@ -21,14 +24,10 @@ class SystemManager {
 
     public setNotificator(notificationType: Notificators) {
         this.notificator = this.notificatorFactory.create(notificationType)
+        this.notificatorProxy=new NotificationSenderProxy(this.notificator)
     }
 
     public sendNotification(forceError: boolean = false) {
-        if (!this.notificator) {
-            console.log("No notificator configured")
-            return
-        }
-
         let tries = 0
         let success = false
 
@@ -36,7 +35,7 @@ class SystemManager {
             try {
                 if (forceError) throw new Error()
 
-                this.notificator.send()
+                this.notificatorProxy.send()
                 success = true
             } catch {
                 tries++
@@ -49,20 +48,25 @@ class SystemManager {
 
 
 function testSystem() {
-    const system = SystemManager.getInstance("My company", 3)
+    const system = SystemManager.getInstance("My Telegraph company",5)
 
+    /*    
     system.setNotificator(Email)
     system.sendNotification()
     system.sendNotification(true)
 
     system.setNotificator(SMS)
-        system.sendNotification()
-
+    system.sendNotification()
     system.sendNotification(true)
 
     system.setNotificator(Push)
     system.sendNotification()
-        system.sendNotification(true)
+    system.sendNotification(true)
+    */
+
+    system.setNotificator(TelegraphAdaptor)
+    system.sendNotification()
+    system.sendNotification(true)
 
 }
 
